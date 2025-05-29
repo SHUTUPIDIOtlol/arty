@@ -1,25 +1,19 @@
-import asyncio
-import websockets
-import os
+const socket = new WebSocket("wss://arty-production-543b.up.railway.app");
 
-clients = set()
+socket.addEventListener('open', () => {
+  console.log('✅ Connected to WebSocket server');
+  // Example send
+  // socket.send("hello world");
+});
 
-async def handler(ws):
-    clients.add(ws)
-    try:
-        async for message in ws:
-            for client in clients:
-                if client != ws:
-                    await client.send(message)
-    except:
-        pass
-    finally:
-        clients.remove(ws)
+socket.addEventListener('message', (event) => {
+  console.log('📨 Message from server:', event.data);
+});
 
-async def main():
-    port = int(os.getenv("PORT", 8080))
-    async with websockets.serve(handler, "0.0.0.0", port):
-        print(f"WebSocket server started on port {port}")
-        await asyncio.Future()  # run forever
+socket.addEventListener('close', () => {
+  console.log('❌ WebSocket connection closed');
+});
 
-asyncio.run(main())
+socket.addEventListener('error', (err) => {
+  console.error('⚠️ WebSocket error:', err);
+});
