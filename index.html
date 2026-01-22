@@ -1,28 +1,66 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Arty</title>
-  </head>
-  <body>
-    <input id="msg" placeholder="say something" />
-    <button onclick="sendMessage()">send</button>
-    <div id="log"></div>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Downloader</title>
+<style>
+body{background:#0b0f1a;color:#e8ecff;font-family:system-ui;margin:0;padding:16px}
+input,button{padding:12px;margin:4px;border-radius:10px;border:none}
+input{width:100%;background:#10162d;color:white}
+button{background:#3aa0ff;color:white;font-weight:600;width:100%;cursor:pointer}
+#results{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:12px}
+.card{background:#11162a;border-radius:14px;overflow:hidden;cursor:pointer}
+.card img{width:100%}
+.info{padding:10px}
+.title{font-size:14px;font-weight:600}
+.download{margin-top:8px;padding:6px 10px;background:#3aa0ff;color:white;border:none;border-radius:6px;cursor:pointer;width:100%;text-align:center}
+#error{padding:12px;color:#ff6b6b;text-align:center}
+</style>
+</head>
+<body>
+<input id="q" placeholder="Search YouTube">
+<button onclick="search()">Search</button>
+<div id="error"></div>
+<div id="results"></div>
+<script>
+const BASE = "";
 
-    <script>
-      const socket = new WebSocket("wss://arty-production-543b.up.railway.app");
+async function search(){
+  const q = document.getElementById("q").value.trim();
+  if(!q) return;
+  const resDiv = document.getElementById("results");
+  resDiv.innerHTML = "Loading…";
+  document.getElementById("error").textContent = "";
+  try{
+    const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    resDiv.innerHTML = "";
+    if(!data.length){document.getElementById("error").textContent="No results";return;}
+    data.forEach(v=>{
+      const card = document.createElement("div");
+      card.className="card";
+      card.innerHTML=`<img src="${v.thumbnail}"><div class="info"><div class="title">${v.title}</div><button class="download">Download</button></div>`;
+      card.querySelector(".download").onclick = () => download(v.id,v.title);
+      resDiv.appendChild(card);
+    });
+  }catch(e){document.getElementById("error").textContent="Search failed";}
+}
 
-      socket.onopen = () => {
-        document.getElementById("log").innerHTML += "<p>Connected.</p>";
-      };
-
-      socket.onmessage = (event) => {
-        document.getElementById("log").innerHTML += `<p>${event.data}</p>`;
-      };
-
-      function sendMessage() {
-        const msg = document.getElementById("msg").value;
-        socket.send(msg);
-      }
-    </script>
-  </body>
+async function download(id,title){
+  try{
+    const res = await fetch(`/download?id=${id}`);
+    const data = await res.json();
+    if(data.downloadUrl){
+      const a = document.createElement("a");
+      a.href = data.downloadUrl;
+      a.download = title+".mp4";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }else{alert("Failed to get download link");}
+  }catch(e){alert("Error fetching download link");}
+}
+</script>
+</body>
 </html>
